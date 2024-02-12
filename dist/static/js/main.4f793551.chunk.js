@@ -1,0 +1,1 @@
+(this.webpackJsonponemed_chrome_extension=this.webpackJsonponemed_chrome_extension||[]).push([[0],{4:function(e,n,t){"use strict";t.r(n);var o=t(0),c=t.n(o),r=t(3),s=t.n(r),i=t(2);s.a.render(Object(i.jsx)(c.a.StrictMode,{children:Object(i.jsx)("p",{children:"Chrome extension"})}),document.getElementById("root"))}},[[4,1,2]]]);

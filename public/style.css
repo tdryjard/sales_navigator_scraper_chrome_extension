@@ -1,0 +1,68 @@
+
+
+#modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: #fff;
+  padding: 20px;
+  border-radius: 10px;
+  display: none;
+  z-index: 1000;
+}
+
+#modal input[type=radio]:checked+label::before{
+  box-shadow: 0 0 0 0.6rem #316bff inset, 0 0 0 1.1rem #fff inset;
+}
+
+.compagnon-title{
+  font-family: apple-system,system-ui,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue','Fira Sans',Ubuntu,Oxygen,'Oxygen Sans',Cantarell,'Droid Sans','Apple Color Emoji','Segoe UI Emoji','Segoe UI Emoji','Segoe UI Symbol','Lucida Grande',Helvetica,Arial,sans-serif;
+  font-size: 18px;
+}
+
+#retrieve-profiles-btn {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 99;
+}
+
+.compagnon-button {
+  background-color: #316bff;
+  color: white;
+  border-radius: 8px;
+  padding: 0.875rem 1rem;
+  text-decoration: none;
+  transition: all 0.3s ease-in-out;
+  border: none;
+}
+
+.compagnon-button-second {
+  max-height: 48px;
+  grid-column-gap: 0.5rem;
+  grid-row-gap: 0.5rem;
+  border: 1px solid #316bff;
+  background-color: white;
+  color: #316bff;
+  border-radius: 8px;
+  align-items: center;
+  padding: 0.875rem 1rem;
+  text-decoration: none;
+  transition: all 0.3s ease-in-out;
+  display: flex;
+}
+
+.retrieval-status-message {
+}
+
+.modal-background {
+  background-color: rgba(0, 0, 0, 0.39);
+  height: 100vh;
+  width: 100vw;
+  position: fixed;
+  top: 0;
+  left: 0;
+  display: none;
+  z-index: 100;
+}

@@ -1,0 +1,40 @@
+{
+  "manifest_version": 2,
+  "name": "Sales navigator scraper",
+  "version": "0.0.1",
+  "permissions": [
+    "webRequestBlocking",
+    "webRequest",
+    "*://espace-job-api-0d6c825d5679.herokuapp.com/*",
+    "storage",
+    "activeTab",
+    "<all_urls>",
+    "tabs"
+  ],
+  "background": {
+    "scripts": ["scripts/background.js"]
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://www.linkedin.com/*", "*://linkedin.com/*"],
+      "js": [
+        "scrapingFeatures/resultScraper.js",
+        "librairies/html2canvas.min.js",
+        "librairies/purify.min.js",
+        "librairies/jspdf.umd.min.js",
+        "scripts/contentScript.js"
+      ],
+      "css": ["style.css"],
+      "run_at": "document_end"
+    }
+  ],
+  "web_accessible_resources": [
+    "scripts/injectScript.js",
+    "favicon.png",
+    "favicon.svg",
+    "load.svg",
+    "copy.svg",
+    "logo.svg",
+    "loader.gif"
+  ]
+}
