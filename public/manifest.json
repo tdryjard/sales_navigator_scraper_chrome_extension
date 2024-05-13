@@ -1,11 +1,11 @@
 {
   "manifest_version": 2,
-  "name": "Sales navigator scraper",
-  "version": "0.0.1",
+  "name": "Compagnon",
+  "version": "0.0.5",
   "permissions": [
     "webRequestBlocking",
     "webRequest",
-    "*://espace-job-api-0d6c825d5679.herokuapp.com/*",
+    "*://your-server-url.com/*",
     "storage",
     "activeTab",
     "<all_urls>",
@@ -18,7 +18,9 @@
     {
       "matches": ["*://www.linkedin.com/*", "*://linkedin.com/*"],
       "js": [
+        "scrapingFeatures/buttonsInjections.js",
         "scrapingFeatures/resultScraper.js",
+        "scrapingFeatures/profilScraper.js",
         "librairies/html2canvas.min.js",
         "librairies/purify.min.js",
         "librairies/jspdf.umd.min.js",
@@ -35,6 +37,8 @@
     "load.svg",
     "copy.svg",
     "logo.svg",
-    "loader.gif"
+    "loader.gif",
+    "loader_2.gif",
+    "close.png"
   ]
 }

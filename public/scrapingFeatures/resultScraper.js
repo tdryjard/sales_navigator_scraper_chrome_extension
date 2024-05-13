@@ -1,17 +1,22 @@
 const RECRUITER_ID = "658d514d8dac71a7830670c8";
 const HUNTMELEADS_LIST_ID = "65c737f13f3cf581098b45e6";
-let email_priority = "B2C"; // Par défaut, prioriser les emails personnels
+const WAITING_TIME_BETWEEN_PAGNIATION = 30000; // 30 secondes
+const WAITING_TIME_BEFORE_DOWNLOAD = 120000; // 2 minutes
+
+let email_priority = "all"; // Par défaut, prioriser les emails personnels
 let stopPagination = false; // Variable de contrôle pour arrêter la pagination
 let currentPage = 1;
 let lastSendToHuntMeLeadsTime = 0;
+let lastPageChangeTime = 0;
 
 function createAndManageModal() {
+
   const modalBackground = document.createElement("div");
   modalBackground.className = "modal-background";
   document.body.appendChild(modalBackground);
 
   const modal = document.createElement("div");
-  modal.id = "modal";
+  modal.id = "list-modal";
   modal.style.display = "none"; // Masquer la modal par défaut
   document.body.appendChild(modal);
 
@@ -29,23 +34,23 @@ function createAndManageModal() {
         <input type="radio" id="b2b" name="email_priority" value="B2B">
         <label for="b2b">Prioriser emails professionnels</label>
       </div>
-      <div style="display: flex; flex-direction: column; align-items: center; margin-top: 10px;">
-        <button style="margin: 10px" type="button" class="compagnon-button" id="start-retrieval">Lancer la récupération de profils</button>
-        <button style="margin: 10px; display: none;" type="button" class="compagnon-button-second" id="stop-retrieval">Arrêter la récupération de profils</button>
-        <button style="margin: 5px" type="button" class="compagnon-button-second" id="close-modal">Fermer</button>
+      <div class="compagnon-radio">
+        <input type="radio" id="all" name="email_priority" value="all">
+        <label for="all">Prendre toutes les adresses emails</label>
       </div>
     </form>
+    <img src="" style="width: 150px; height: auto; display: none; margin-left: 20px; margin-top: 20px; margin-bottom: 30px;" id="loader-2" />
+    <div style="display: flex; flex-direction: column; align-items: center; margin-top: 10px; width: 100%;">
+    <img type="button" id="close-modal" style="position: absolute; top: 10px; left: 10px; height: 25px; width: 25px; cursor: pointer;" />
+      <button style="margin-top: 20px; padding: 15px 30px; font-size: 16px;" type="button" class="compagnon-button" id="start-retrieval">Lancer la récupération</button>
+      <button style="margin-top: 20px; display: none;" type="button" class="compagnon-button-second" id="stop-retrieval">Arrêter la récupération</button>
+    </div>
   </div>
   `;
 
+  document.getElementById("loader-2").src = chrome.runtime.getURL("loader_2.gif");
   document.getElementById("loader").src = chrome.runtime.getURL("loader.gif");
-
-  // Gestion de l'affichage de la modal
-  document.getElementById("retrieve-profiles-btn").addEventListener("click", () => {
-    modal.style.display = "block";
-    modalBackground.style.display = "block";
-    updatePaginationInfo()
-  });
+  document.getElementById("close-modal").src = chrome.runtime.getURL("close.png");
 
   // Gestion du choix de priorité d'email
   document.querySelectorAll('input[name="email_priority"]').forEach((input) => {
@@ -59,24 +64,33 @@ function createAndManageModal() {
   const stopRetrievalButton = document.getElementById("stop-retrieval");
   const radios = document.getElementsByClassName("compagnon-radio");
 
-  startRetrievalButton.addEventListener("click", () => {
+  startRetrievalButton.addEventListener("click", async () => {
+
     stopPagination = false; // Bascule l'état de stopPagination
     document.getElementById("close-modal").style.display = "none"; // Cache le bouton Fermer
-    launchProfileRetrieval();
     startRetrievalButton.style.display = "none";
     stopRetrievalButton.style.display = "block";
     radios[0].style.display = "none";
     radios[1].style.display = "none";
+    radios[2].style.display = "none";
+
+    document.getElementById("loader-2").style.display = "block"; // Afficher le loader
+
+    await new Promise((resolve) => setTimeout(resolve, 4000)); // Attendre 4 secondes
+    launchProfileRetrieval();
   });
 
   stopRetrievalButton.addEventListener("click", () => {
     stopPagination = true; // Bascule l'état de stopPagination
-    document.getElementById("close-modal").style.display = "block"; // Cache le bouton Fermer
     startRetrievalButton.style.display = "block";
     stopRetrievalButton.style.display = "none";
     radios[0].style.display = "block";
     radios[1].style.display = "block";
+    radios[2].style.display = "block";
+    document.getElementById("loader-2").style.display = "none"; // Afficher le loader
+    document.getElementById("loader").style.display = "none"; // Afficher le loader
     stopProfileRetrieval();
+    document.getElementById("close-modal").style.display = "block"; // Cache le bouton Fermer
   });
 
   // Bouton de fermeture de la modal
@@ -84,25 +98,17 @@ function createAndManageModal() {
   closeModalButton.addEventListener("click", () => {
     modal.style.display = "none";
     modalBackground.style.display = "none";
+    document.getElementById("loader-2").style.display = "none"; // Afficher le loader
+    document.getElementById("job-critera-modal").style.display = "none";
     stopPagination = true;
   });
-}
-
-// Vérifier si le script est déjà injecté pour éviter les doublons
-if (!document.getElementById("retrieve-profiles-btn")) {
-  const retrieveProfilesButton = document.createElement("button");
-  retrieveProfilesButton.id = "retrieve-profiles-btn";
-  retrieveProfilesButton.innerText = "Récupérer profils";
-  retrieveProfilesButton.className = "compagnon-button";
-  document.body.appendChild(retrieveProfilesButton);
-
-  createAndManageModal(); // Appel de la fonction pour créer et gérer la modal
+  
 }
 
 const stopProfileRetrieval = () => {
   const currentTime = Date.now();
   const timeElapsedSinceLastSend = currentTime - lastSendToHuntMeLeadsTime;
-  const waitTime = 20000 - timeElapsedSinceLastSend; // 20 secondes - temps écoulé
+  const waitTime = WAITING_TIME_BEFORE_DOWNLOAD - timeElapsedSinceLastSend; // 20 secondes - temps écoulé
 
   if (waitTime > 0) {
     // Moins de 20 secondes se sont écoulées depuis la dernière exécution
@@ -116,6 +122,7 @@ const stopProfileRetrieval = () => {
 const showLoaderWithDelay = (delay) => {
   document.getElementById("loader").style.display = "block"; // Afficher le loader
   document.getElementById("content-modal-compagnon").style.display = "none";
+  document.getElementById("job-critera-modal").style.display = "none";
 
   setTimeout(() => {
     // Le délai est écoulé, procéder au téléchargement du CSV
@@ -125,7 +132,7 @@ const showLoaderWithDelay = (delay) => {
 
 const downloadCSV = () => {
   fetch(
-    `https://espace-job-api-0d6c825d5679.herokuapp.com/api/compagnon/download-csv/${RECRUITER_ID}?email_priority=${email_priority}`
+    `https://your-server-url.com/api/compagnon/download-csv/${RECRUITER_ID}?email_priority=${email_priority}`
   )
     .then((res) => {
       if (!res.ok) {
@@ -151,7 +158,7 @@ const downloadCSV = () => {
 };
 
 function createDownloadButton() {
-  const modal = document.getElementById("modal");
+  const modal = document.getElementById("list-modal");
   const button = document.createElement("a");
   button.id = "download-csv";
   button.className = "compagnon-button";
@@ -160,13 +167,14 @@ function createDownloadButton() {
   modal.appendChild(button);
   button.addEventListener("click", () => {
     document.getElementById("content-modal-compagnon").style.display = "block";
+    document.getElementById("job-critera-modal").style.display = "flex";
     button.style.display = "none"; // Masquer le bouton après le téléchargement
   });
   return button;
 }
 
 const launchProfileRetrieval = () => {
-  fetch(`https://espace-job-api-0d6c825d5679.herokuapp.com/api/compagnon/launch/${RECRUITER_ID}`, {
+  fetch(`https://your-server-url.com/api/compagnon/launch/${RECRUITER_ID}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -174,22 +182,20 @@ const launchProfileRetrieval = () => {
     body: null,
   });
 
-  scrollSearchResultsContainer(() => {
-    clickAllProfiles();
-  });
+  getProfilesData();
 };
 
 function updatePaginationInfo() {
   // TODO: Implémenter la logique pour extraire le numéro de la page actuelle et le nombre total de pages
   // Ceci est un placeholder pour la logique d'extraction
-  const currentPageNumber = document.querySelector('[aria-current="true"]').innerText; // Exemple statique, doit être dynamique
+  const currentPageNumber = document.querySelector('[aria-current="true"]')?.innerText || 0; // Exemple statique, doit être dynamique
 
   let totalPageNumber = 1; // Exemple statique, doit être dynamique
 
   const paginationBtns = document.querySelectorAll("li[data-test-pagination-page-btn]");
 
   // Vérifiez si au moins un élément a été trouvé
-  if (paginationBtns.length > 0) {
+  if (paginationBtns?.length > 0) {
     // Prenez le dernier élément de la liste
     const lastPaginationBtn = paginationBtns[paginationBtns.length - 1];
 
@@ -203,187 +209,70 @@ function updatePaginationInfo() {
   }
 }
 
-function scrollSearchResultsContainer(callback) {
-  const searchResultsContainer = document.getElementById("search-results-container");
-
-  if (!searchResultsContainer) {
-    console.log("Conteneur des résultats de recherche non trouvé.");
-    callback();
-    return;
-  }
-
-  let lastScrollTop = searchResultsContainer.scrollTop;
-  const scrollIncrement = 400; // Définir le nombre de pixels à défiler à chaque itération
-
-  const scrollStep = () => {
-    // Si on n'est pas encore en bas du conteneur, on continue de défiler
-    if (
-      searchResultsContainer.scrollTop + searchResultsContainer.clientHeight <
-      searchResultsContainer.scrollHeight - 300
-    ) {
-      searchResultsContainer.scrollTop += scrollIncrement;
-
-      // Si le scroll n'a pas bougé (bloqué par le bas de la page ou le chargement est complet), on arrête
-      if (lastScrollTop === searchResultsContainer.scrollTop) {
-        callback();
-      } else {
-        lastScrollTop = searchResultsContainer.scrollTop;
-        setTimeout(scrollStep, 200); // Attendez un peu avant le prochain scroll
-      }
-    } else {
-      // Arrivé en bas, ou presque, on exécute le callback
-      callback();
-    }
-  };
-
-  scrollStep();
-}
-
-async function clickAllProfiles() {
-  updatePaginationInfo();
-  const profileLinks = document.querySelectorAll('a[data-view-name="search-results-lead-name"]');
-  const profilesData = []; // Pour stocker les données de tous les profils
-
-  for (let index = 0; index < profileLinks.length; index++) {
-    const profileLink = profileLinks[index];
-    if (stopPagination) {
-      console.log("Arrêt de la récupération des profils.");
-      return;
-    }
-
-    profileLink.click();
-    // Attend 2 secondes après avoir cliqué sur le profil
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-
-    // Passer l'index actuel à getProfileData
-    const profileData = await getProfileData();
-    console.log("profileData", profileData);
-    profilesData.push(profileData);
-  }
-
-  sendToHuntMeLeads({ profilesData });
-
-  goToNextPage();
-}
-
-const parseMonth = (monthIndex) => {
-  const months = [
-    "Janvier",
-    "Février",
-    "Mars",
-    "Avril",
-    "Mai",
-    "Juin",
-    "Juillet",
-    "Aout",
-    "Septembre",
-    "Octobre",
-    "Novembre",
-    "Décembre",
-  ];
-  return months[monthIndex - 1];
-};
-
-async function getProfileData() {
-  // Supposons que vous avez déjà une fonction ou une logique pour traiter les données de la requête
-  // par exemple, récupérer les données stockées et les afficher
-
+async function getProfilesData() {
   return new Promise((resolve, reject) => {
-    chrome.storage.local.get("profileData", async function (data) {
+    chrome.storage.local.get("profilesData", async function (data) {
       if (chrome.runtime.lastError) {
+        console.log(chrome.runtime.lastError);
         reject(chrome.runtime.lastError);
         return;
       }
+
       console.log("data", data);
-      console.log("Données du profil récupérées:", data.profileData);
-      const profileData = data.profileData;
+      if (data?.profilesData?.["elements"] !== undefined) {
+        Promise.all(
+          (data?.profilesData?.["elements"] || [])
+            .filter((profileData) => profileData !== null)
+            .map(async (profileData) => {
+              console.log("profileData", profileData);
+              console.log("Données du profil récupérées:", data.profileData);
 
-      let profileInformation = {
-        email: profileData.contactInfo?.primaryEmail || "",
-        user_first_name: profileData.firstName || "",
-        user_last_name: profileData.lastName || "",
-        job_title: profileData.positions?.[0]?.title || "",
-        profil_picture_url:
-          profileData.profilePictureDisplayImage?.artifacts?.[2]?.fileIdentifyingUrlPathSegment || "",
-        user_company_name: profileData.defaultPosition?.companyName || "",
-        user_company_id: profileData.defaultPosition?.companyUrn?.split("urn:li:fs_salesCompany:")?.[1],
-        linkedin: profileData.flagshipProfileUrl || "",
-        linkedin_id: profileData.objectUrn?.split("urn:li:member:")?.[1],
-        domain: "",
-        user_city: "",
-        user_country: "",
-        user_region: "",
-        user_source: "linkedin",
-        experiences: profileData.positions?.map((experience) => ({
-          duration: `${parseMonth(experience.startedOn?.month)} ${experience.startedOn?.year} - ${
-            !experience.endedOn
-              ? "Aujourd'hui"
-              : `${parseMonth(experience.endedOn?.month)} ${experience.endedOn?.year}`
-          }`,
-          title: experience.title,
-          company: experience.companyName,
-        })),
-        formations: profileData.educations?.map((formation) => ({
-          title: formation.degree,
-          school: formation.school,
-          duration: `${formation.startedOn?.year} - ${
-            !formation.endedOn ? "Aujourd'hui" : `${formation.endedOn?.year}`
-          }`,
-        })),
-        skills: profileData.skills?.map((skill) => skill.name),
-        languages: profileData.languages?.map((language) => language.name),
-        summary: profileData.summary,
-      };
+              let userObject = {
+                linkedinUrl: "",
+                linkedinId: profileData.objectUrn?.split("urn:li:member:")?.[1],
+              };
+              if (profileData["entityUrn"] !== undefined) {
+                const urlParts = profileData["entityUrn"]?.split(",");
+                const profilId = urlParts[0].replace("urn:li:fs_salesProfile:(", "");
+                console.log("profilId", profilId);
+                userObject["linkedinUrl"] = "https://www.linkedin.com/in/" + profilId;
+              }
 
-      const address = profileData.location;
-      const isCityRegionCoutnryAddress = address.split(",").length === 3;
-      if (isCityRegionCoutnryAddress) {
-        profileInformation.user_city = address.split(",")[0].trim();
-        profileInformation.user_region = address.split(",")[1].trim();
-        profileInformation.user_country = address.split(",")[2].trim();
-      } else {
-        if (address?.includes("France")) {
-          profileInformation.user_country = "France";
-        } else {
-          profileInformation.user_city = address;
-        }
+              return userObject;
+            })
+        ).then((profilesData) => {
+          lastSendToHuntMeLeadsTime = Date.now();
+          sendToHuntMeLeads({ profilesData });
+          goToNextPage();
+        });
       }
-
-      if (profileInformation.user_company_name) {
-        let domain = "";
-        try {
-          const clearbitResponse = await fetch(
-            `https://autocomplete.clearbit.com/v1/companies/suggest?query=${profileInformation.user_company_name}`
-          );
-          const companies = await clearbitResponse.json();
-          if (companies.length > 0 && companies[0].domain) {
-            domain = companies[0].domain;
-            profileInformation.domain = domain;
-          }
-        } catch (error) {
-          console.error("Erreur lors de la récupération du domaine via Clearbit :", error);
-        }
-      }
-
-      console.log("profileInformation", profileInformation);
-
-      resolve(profileInformation);
     });
   });
 }
 
-function goToNextPage() {
+async function goToNextPage() {
+  const currentTime = Date.now();
+  const timeSinceLastPageChange = currentTime - lastPageChangeTime;
+
+  if (timeSinceLastPageChange < WAITING_TIME_BETWEEN_PAGNIATION) {
+    // Si moins de 30 secondes se sont écoulées depuis le dernier changement de page
+    const waitTime = WAITING_TIME_BETWEEN_PAGNIATION - timeSinceLastPageChange;
+    console.log(`Attente de ${waitTime / 1000} secondes avant de changer de page...`);
+    await new Promise((resolve) => setTimeout(resolve, waitTime)); // Attendre le temps restant
+  }
+
   if (stopPagination) {
     console.log("Pagination arrêtée.");
     return; // Ne pas continuer si la pagination est arrêtée
   }
+
   const nextPageButton = document.querySelector("button.artdeco-pagination__button--next");
   if (nextPageButton && !nextPageButton.disabled) {
     nextPageButton.click();
-
-  scrollSearchResultsContainer(() => {
-    clickAllProfiles();
-  });
+    lastPageChangeTime = Date.now(); // Mettre à jour le moment du dernier changement de page
+    await new Promise((resolve) => setTimeout(resolve, 5000)); // Attendre un peu pour que la page charge
+    updatePaginationInfo()
+    getProfilesData();
   } else {
     console.log("Fin de la pagination ou bouton suivant désactivé.");
   }
@@ -391,7 +280,7 @@ function goToNextPage() {
 
 async function sendToHuntMeLeads({ profilesData }) {
   lastSendToHuntMeLeadsTime = Date.now();
-  const url = `https://espace-job-api-0d6c825d5679.herokuapp.com/api/compagnon/add-profils/${RECRUITER_ID}/${HUNTMELEADS_LIST_ID}`;
+  const url = `https://your-server-url.com/api/compagnon/add-profils/${RECRUITER_ID}/${HUNTMELEADS_LIST_ID}`;
 
   try {
     const response = await fetch(url, {
@@ -399,7 +288,10 @@ async function sendToHuntMeLeads({ profilesData }) {
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(profilesData),
+      body: JSON.stringify({
+        candidates: profilesData,
+        criteria: null,
+      }),
     });
 
     if (!response.ok) throw new Error("Network response was not ok.");
@@ -414,3 +306,6 @@ async function sendToHuntMeLeads({ profilesData }) {
 setTimeout(() => {
   updatePaginationInfo();
 }, 3000);
+
+createAndManageModal();
+

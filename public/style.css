@@ -1,23 +1,86 @@
-
-
-#modal {
+#list-modal {
   position: fixed;
-  top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
   background-color: #fff;
   padding: 20px;
   border-radius: 10px;
   display: none;
+  width: 300px;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
   z-index: 1000;
+  top: 50%;
+  height: 400px;
+  box-shadow: rgb(209 209 209) 1px 1px 4px;
 }
 
-#modal input[type=radio]:checked+label::before{
+#job-critera-modal {
+  position: fixed;
+  padding-left: 50px;
+  padding-top: 10px;
+  transform: translate(-50%, -50%);
+  background-color: #f8f8f8;
+  padding: 20px;
+  border-radius: 10px;
+  display: none;
+  z-index: 100;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 260px;
+  height: 380px;
+  overflow: auto;
+
+  top: 50%;
+  left: calc(50% + 310px);
+}
+
+#content-modal-compagnon {
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+}
+
+.compagnon-disable-criteria {
+  position: absolute;
+  top: 5px;
+  left: 25px;
+}
+
+#job-critera-modal input[type="checkbox"]{
+  transform: scale(1);
+  height: 20px;
+  width: 20px;
+}
+
+#job-critera-modal input[type="checkbox"]:checked + label::before {
+  box-shadow: 0 0 0 1.1rem #316bff inset;
+}
+
+#job-critera-modal input[type="checkbox"] + label::before {
+  border: 1px solid #316bff;
+}
+
+.compagnon-input {
+  background: white !important;
+  border-radius: 4px !important;
+  border: 1px solid rgb(221, 226, 239) !important;
+  height: 30px !important;
+  font-size: 13px !important;
+  width: 100% !important;
+  margin-top: 4px !important;
+}
+
+#modal input[type="radio"]:checked + label::before {
   box-shadow: 0 0 0 0.6rem #316bff inset, 0 0 0 1.1rem #fff inset;
 }
 
-.compagnon-title{
-  font-family: apple-system,system-ui,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue','Fira Sans',Ubuntu,Oxygen,'Oxygen Sans',Cantarell,'Droid Sans','Apple Color Emoji','Segoe UI Emoji','Segoe UI Emoji','Segoe UI Symbol','Lucida Grande',Helvetica,Arial,sans-serif;
+.compagnon-title {
+  font-family: apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", "Fira Sans",
+    Ubuntu, Oxygen, "Oxygen Sans", Cantarell, "Droid Sans", "Apple Color Emoji", "Segoe UI Emoji",
+    "Segoe UI Emoji", "Segoe UI Symbol", "Lucida Grande", Helvetica, Arial, sans-serif;
   font-size: 18px;
 }
 
