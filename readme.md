@@ -4,4 +4,4 @@
 
 ## 2: npm run build
 
-## 3: upload the build dist folder to your navigator extensions (and go to linekdin sales nav)
+## 3: upload the build dist folder to your navigator extensions (and go to linkedin sales nav)
